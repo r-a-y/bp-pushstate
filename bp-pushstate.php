@@ -46,6 +46,11 @@ class BP_pushState {
 	 * Constructor.
 	 */
 	public function __construct() {
+		// not theme compat? stop now!
+		if ( ! bp_use_theme_compat_with_current_theme() ) {
+			return;
+		}
+
 		add_action( 'wp_ajax_bp_pushstate',        array( $this, 'process_pushstate' ) );
 		add_action( 'wp_ajax_nopriv_bp_pushstate', array( $this, 'process_pushstate' ) );
 
