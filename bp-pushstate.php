@@ -58,7 +58,6 @@ class BP_pushState {
 	public function process_pushstate() {
 		$linkid  = explode( '-', $_REQUEST['linkid'] );
 		$href    = $_REQUEST['href'];
-		$group   = '';
 
 		if ( 'user' === $linkid[0] ) {
 			$component = 'members';
@@ -150,10 +149,10 @@ class BP_pushState {
 		/** object buffer *****************************************************/
 
 		// hook to do stuff before object buffer
-		do_action( "bp_pushstate_{$component}_before_buffer", $slug, $href, $group );
+		do_action( "bp_pushstate_{$component}_before_buffer", $slug, $href );
 
 		// filter the template part name
-		$tpart = apply_filters( "bp_pushstate_{$component}_tpart_name", "{$component}/single/{$tpart}", $tpart, $href, $group );
+		$tpart = apply_filters( "bp_pushstate_{$component}_tpart_name", "{$component}/single/{$tpart}", $tpart, $href );
 
 		$result = array();
 
@@ -161,7 +160,7 @@ class BP_pushState {
 		ob_start();
 
 		// filter for plugins to override this entire process
-		$content = apply_filters( "bp_pushstate_{$component}_content", '', $slug, $href, $group );
+		$content = apply_filters( "bp_pushstate_{$component}_content", '', $slug, $href );
 		if ( ! empty( $content ) ) {
 			echo $content;
 
@@ -207,7 +206,7 @@ class BP_pushState {
 		}
 
 		// hook to echo stuff during buffer
-		do_action( "bp_pushstate_{$component}_during_buffer", $slug, $href, $group );
+		do_action( "bp_pushstate_{$component}_during_buffer", $slug, $href );
 
 		// groups - fugly, pt. ii
 		// bbPress hack to get TinyMCE working... also slows down the network
@@ -230,7 +229,7 @@ class BP_pushState {
 		// Yes, we even support page titles!
 		// @todo The separator and title format is hard-coded currently...
 		// @todo Look into add_theme_support( 'title_tag' )
-		$result['page_title'] = apply_filters( "bp_pushstate_{$component}_title", wp_title( '|', false ), $slug, $group );
+		$result['page_title'] = apply_filters( "bp_pushstate_{$component}_title", wp_title( '|', false ), $slug );
 
 		// @todo support dynamically switching out the RSS links?
 		//$result['rss'] = '';
