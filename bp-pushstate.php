@@ -118,6 +118,8 @@ class BP_pushState {
 
 			// group-specific
 			if ( 'groups' == $component ) {
+				$slug = 'forum';
+
 				// ugly hack to get TinyMCE's inline JS working...
 				// we have to fake the is_admin() call to false
 				// @todo perhaps move this out so every plugin can use it?
