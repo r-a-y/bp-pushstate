@@ -8,6 +8,7 @@ Version:     0.1-alpha
 License:     GPLv2 or later
 */
 
+add_action( 'plugins_loaded', array( 'BP_pushState', 'fake_is_admin' ), -999 );
 add_action( 'bp_loaded', array( 'BP_pushState', 'init' ) );
 
 /**
@@ -19,10 +20,6 @@ add_action( 'bp_loaded', array( 'BP_pushState', 'init' ) );
  * plugins should function just fine.
  *
  * Known issues - General:
- * - Plugins relying on is_admin() to load up code on the frontend will fail.
- *   This is due to AJAX returning is_admin() to true.  Plugins will need to
- *   reapply their code using the "bp_pushstate_{$component}_before_buffer"
- *   hook.
  * - Plugins relying on the 'wp_footer' hook will need to reapply their code
  *   using the "bp_pushstate_{$component}_during_buffer" hook.
  *
@@ -40,6 +37,43 @@ class BP_pushState {
 	 */
 	public static function init() {
 		return new self();
+	}
+
+	/**
+	 * Fake is_admin() call to false when our AJAX hook is called.
+	 *
+	 * is_admin() usually returns true when used during AJAX.  This class method
+	 * forces is_admin() to return false to fix some plugins that use is_admin() to
+	 * determine whether to load up their code on the frontend only.
+	 *
+	 * What we're doing here is initializing the $current_screen global to fake
+	 * is_admin() to false only on BP pushState's specialized AJAX hook.
+	 *
+	 * @see is_admin()
+	 */
+	public static function fake_is_admin() {
+		// determine if AJAX is running.  if not, bail.
+		if ( defined( 'DOING_AJAX' ) && true !== constant( 'DOING_AJAX' ) ) {
+			return;
+		}
+
+		// sanity check!
+		if ( empty( $_REQUEST['action'] ) ) {
+			return;
+		}
+
+		// make sure we're running our special AJAX hook.  if not, bail.
+		if ( 'bp_pushstate' !== $_REQUEST['action'] ) {
+			return;
+		}
+
+		// fix warnings with undeclared bp_admin() function
+		// @see https://buddypress.trac.wordpress.org/browser/tags/2.2.1/src/bp-core/bp-core-actions.php?marks=101#L101
+		function bp_admin() {}
+
+		// here's where we force is_admin() to false
+		// see the first portion of is_admin() to find out what we're doing here
+		$GLOBALS['current_screen'] = new WP_No_Admin;
 	}
 
 	/**
@@ -119,21 +153,6 @@ class BP_pushState {
 			// group-specific
 			if ( 'groups' == $component ) {
 				$slug = 'forum';
-
-				// ugly hack to get TinyMCE's inline JS working...
-				// we have to fake the is_admin() call to false
-				// @todo perhaps move this out so every plugin can use it?
-				$GLOBALS['current_screen'] = new WP_No_Admin;
-
-				// support GD bbPress attachments
-				//
-				// their code does a check on is_admin() early to determine whether to load up
-				// their frontend code.  since AJAX returns is_admin() to true, their code
-				// fails to load.  so we manually boot up their frontend code here.
-				if ( ! empty( $GLOBALS['gdbbpress_attachments'] ) ) {
-					require_once( GDBBPRESSATTACHMENTS_PATH . 'code/attachments/front.php' );
-					$GLOBALS['gdbbpress_attachments_front']->load();
-				}
 			}
 		}
 
@@ -329,10 +348,8 @@ if ( ! class_exists( 'WP_No_Admin' ) ) :
 /**
  * Loophole class to fake {@link is_admin()} to false during AJAX requests.
  *
- * Since a WP AJAX request always defaults is_admin() to true, we initialize
- * this class as the $current_screen global to fake is_admin() to false.
- *
  * @see is_admin()
+ * @see BP_pushState::fake_is_admin()
  */
 class WP_No_Admin {
 	/**
